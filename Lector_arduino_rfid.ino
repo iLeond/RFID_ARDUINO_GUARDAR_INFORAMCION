@@ -113,37 +113,35 @@ void leerContenidoDeLaTarjeta() {
 
   Serial.println(F("Leyendo contenido de la tarjeta..."));
 
-  // La cantidad máxima de sectores varía según el tipo de tarjeta.
-  // Por simplicidad, este ejemplo asume MIFARE Classic 1K, que tiene 16 sectores.
-  byte cantidadSectores = 16; // Ajusta según tu tipo de tarjeta si es necesario
-
   // Iterar sobre los sectores y bloques válidos
-  for (byte sector = 1; sector < cantidadSectores; sector++) { // Comenzar desde el sector 1 para evitar el sector 0
-    for (byte bloqueRelativo = 0; bloqueRelativo < 3; bloqueRelativo++) { // Solo los primeros 3 bloques de cada sector, excluyendo los bloques de tráiler
-      byte blockAddr = sector * 4 + bloqueRelativo; // Calcula el número absoluto del bloque
+  for (byte sector = 1; sector < mfrc522.PICC_GetType(mfrc522.uid.sak); sector++) {
+    for (byte bloqueRelativo = 0; bloqueRelativo < 3; bloqueRelativo++) { 
+      byte blockAddr = sector * 4 + bloqueRelativo;
 
       // Autenticación usando la llave A
       MFRC522::StatusCode status = mfrc522.PCD_Authenticate(MFRC522::PICC_CMD_MF_AUTH_KEY_A, blockAddr, &key, &(mfrc522.uid));
       if (status != MFRC522::STATUS_OK) {
         Serial.print(F("Autenticación fallida para el bloque: ")); Serial.println(blockAddr);
-        continue; // Continuar con el siguiente bloque/sector en caso de fallo
+        continue;
       }
 
-      byte buffer[18]; // Buffer para los datos leídos
+      byte buffer[18];
       byte blockSize = sizeof(buffer);
       status = mfrc522.MIFARE_Read(blockAddr, buffer, &blockSize);
       if (status != MFRC522::STATUS_OK) {
         Serial.print(F("Error de lectura en bloque: ")); Serial.println(blockAddr);
-        continue; // Continuar con el siguiente bloque/sector en caso de fallo
+        continue;
       }
 
       // Convertir de Hex a ASCII para mostrar el contenido
       Serial.print(F("Bloque ")); Serial.print(blockAddr); Serial.print(F(": "));
-      for (byte i = 0; i < 16; i++) { // Cada bloque tiene 16 bytes
-        if (buffer[i] >= 32 && buffer[i] <= 126) { // Imprime solo caracteres imprimibles
+      for (byte i = 0; i < 16; i++) {
+        if (buffer[i] >= 32 && buffer[i] <= 126) {
           Serial.write(buffer[i]);
+        } else if (buffer[i] == 0) { // Omitir o reemplazar valores nulos si es necesario
+          // Serial.write(' '); // Descomentar si deseas agregar espacios en lugar de omitir
         } else {
-          Serial.print("."); // Representa los no imprimibles con un punto
+          Serial.write('.'); // Reemplaza caracteres no imprimibles con puntos
         }
       }
       Serial.println();
@@ -154,3 +152,4 @@ void leerContenidoDeLaTarjeta() {
   mfrc522.PICC_HaltA(); // Halt PICC
   mfrc522.PCD_StopCrypto1(); // Detiene la encriptación en PCD
 }
+
