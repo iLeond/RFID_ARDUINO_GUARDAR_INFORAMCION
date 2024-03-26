@@ -51,7 +51,7 @@ void setup() {
   if (opcion == '1') {
     // Opción para escribir en la tarjeta
     Serial.println(F("Escribiendo en la tarjeta..."));
-    String texto = "Placas ABC-123, Serie XYZ, Marca Toyota, Modelo 2020, Color Rojo, Número de Captura 456";
+    String texto = "Placas ABC-123, Serie XYZ, Marca Toyota, Modelo 2020, Color Rojo, Numero de Captura 456";
     MFRC522::MIFARE_Key key;
     for (byte i = 0; i < 6; i++) key.keyByte[i] = 0xFF;
     escribeTextoEnTarjeta(texto, key);
@@ -107,6 +107,7 @@ void escribeTextoEnTarjeta(String texto, MFRC522::MIFARE_Key key) {
   mfrc522.PICC_HaltA(); // Halt PICC
   mfrc522.PCD_StopCrypto1(); // Detiene la encriptación en PCD
 }
+
 void leerContenidoDeLaTarjeta() {
   MFRC522::MIFARE_Key key;
   for (byte i = 0; i < 6; i++) key.keyByte[i] = 0xFF; // Llave por defecto
@@ -121,7 +122,7 @@ void leerContenidoDeLaTarjeta() {
       // Autenticación usando la llave A
       MFRC522::StatusCode status = mfrc522.PCD_Authenticate(MFRC522::PICC_CMD_MF_AUTH_KEY_A, blockAddr, &key, &(mfrc522.uid));
       if (status != MFRC522::STATUS_OK) {
-        Serial.print(F("Autenticación fallida para el bloque: ")); Serial.println(blockAddr);
+        // Omitir la impresión del error para mantener la salida limpia
         continue;
       }
 
@@ -129,12 +130,11 @@ void leerContenidoDeLaTarjeta() {
       byte blockSize = sizeof(buffer);
       status = mfrc522.MIFARE_Read(blockAddr, buffer, &blockSize);
       if (status != MFRC522::STATUS_OK) {
-        Serial.print(F("Error de lectura en bloque: ")); Serial.println(blockAddr);
+        // Omitir la impresión del error para mantener la salida limpia
         continue;
       }
 
       // Convertir de Hex a ASCII para mostrar el contenido
-      Serial.print(F("Bloque ")); Serial.print(blockAddr); Serial.print(F(": "));
       for (byte i = 0; i < 16; i++) {
         if (buffer[i] >= 32 && buffer[i] <= 126) {
           Serial.write(buffer[i]);
@@ -144,9 +144,9 @@ void leerContenidoDeLaTarjeta() {
           Serial.write('.'); // Reemplaza caracteres no imprimibles con puntos
         }
       }
-      Serial.println();
     }
   }
+  Serial.println(); // Agrega una nueva línea al final para separar la salida del mensaje "Lectura completada"
   Serial.println(F("Lectura completada."));
 
   mfrc522.PICC_HaltA(); // Halt PICC
