@@ -7,7 +7,7 @@
 MFRC522 mfrc522(SS_PIN, RST_PIN);
 
 void setup() {
-  Serial.begin(9600);
+  Serial.begin(115200);
   SPI.begin();
   mfrc522.PCD_Init();
   
@@ -19,53 +19,48 @@ void setup() {
     Serial.println(F("Error: No se pudo leer la versión del firmware, verifica la conexión del lector."));
     while (true); // Detiene el programa aquí si no se detecta el lector
   }
-  Serial.print(F("Versión del firmware: 0x"));
+  Serial.println(F("Versión del firmware: 0x"));
   Serial.println(v, HEX);
 
-  // Mostrar opciones al usuario
-  Serial.println(F("Seleccione una opción:"));
-  Serial.println(F("1. Escribir en la tarjeta"));
-  Serial.println(F("2. Leer la tarjeta"));
+  // El código para mostrar opciones y esperar una selección se traslada al loop()
+}
+void loop() {
+  
+  if (Serial.available() > 0) {
+    // Espera a que haya una entrada en el puerto serial
+    char opcion = Serial.read(); // Lee la opción enviada desde Python
+    Serial.flush(); // Limpia el buffer Serial para evitar caracteres antiguos
 
-  while (!Serial.available()) {
-    // Espera a que el usuario envíe una opción
-    delay(100);
+    if (opcion == '1') {
+      // Opción de escritura
+      Serial.println(F("Escribiendo en la tarjeta..."));
+      if (esperarTarjeta()) {
+        // Si hay una tarjeta presente, procede a la escritura
+        recibirYEscribirTexto();
+      }
+    } else if (opcion == '2') {
+      // Opción de lectura
+      Serial.println(F("Leyendo la tarjeta..."));
+      if (esperarTarjeta()) {
+        // Si hay una tarjeta presente, procede a la lectura
+        leerContenidoDeLaTarjeta();
+      }
+    } else {
+      // Opción no válida
+      Serial.println(F("Opción no válida."));
+    }
   }
-
-  char opcion = Serial.read(); // Lee la opción seleccionada
-
-  // Limpiar el buffer Serial para evitar lecturas erróneas en llamadas futuras
-  while (Serial.available()) Serial.read();
-
-  // Verificar la presencia de la tarjeta después de elegir la opción
-  Serial.println(F("Aproxime la tarjeta al lector..."));
+}
+bool esperarTarjeta() {
   unsigned long startTime = millis();
   while (!mfrc522.PICC_IsNewCardPresent() || !mfrc522.PICC_ReadCardSerial()) {
     if (millis() - startTime > 5000) { // Espera 5 segundos
       Serial.println(F("No se detecta ninguna tarjeta. Reintente."));
-      return; // Salir del setup si no se encuentra ninguna tarjeta en 5 segundos
+      return false; // Retorna falso si no se encuentra ninguna tarjeta en 5 segundos
     }
     delay(100);
   }
-
-  if (opcion == '1') {
-    // Opción para escribir en la tarjeta
-    Serial.println(F("Escribiendo en la tarjeta..."));
-    String texto = "Placas ABC-123, Serie XYZ, Marca Toyota, Modelo 2020, Color Rojo, Numero de Captura 456";
-    MFRC522::MIFARE_Key key;
-    for (byte i = 0; i < 6; i++) key.keyByte[i] = 0xFF;
-    escribeTextoEnTarjeta(texto, key);
-  } else if (opcion == '2') {
-    // Opción para leer la tarjeta
-    Serial.println(F("Leyendo la tarjeta..."));
-    leerContenidoDeLaTarjeta();
-  } else {
-    Serial.println(F("Opción no válida."));
-  }
-}
-
-void loop() {
-  // Mantén el loop vacío
+  return true; // Retorna verdadero cuando la tarjeta está presente
 }
 
 void escribeTextoEnTarjeta(String texto, MFRC522::MIFARE_Key key) {
@@ -108,6 +103,19 @@ void escribeTextoEnTarjeta(String texto, MFRC522::MIFARE_Key key) {
   mfrc522.PCD_StopCrypto1(); // Detiene la encriptación en PCD
 }
 
+void recibirYEscribirTexto() {
+  String texto = "";
+  while (Serial.available() == 0) {
+    // Espera a que llegue el texto a escribir en la tarjeta
+  }
+  texto = Serial.readStringUntil('\n'); // Lee la cadena completa hasta el carácter de nueva línea
+
+  MFRC522::MIFARE_Key key;
+  for (byte i = 0; i < 6; i++) key.keyByte[i] = 0xFF; // Configura la llave por defecto
+
+  // Ahora puedes usar la variable 'texto' con los datos recibidos para escribir en la tarjeta
+  escribeTextoEnTarjeta(texto, key);
+}
 void leerContenidoDeLaTarjeta() {
   MFRC522::MIFARE_Key key;
   for (byte i = 0; i < 6; i++) key.keyByte[i] = 0xFF; // Llave por defecto
