@@ -25,32 +25,36 @@ void setup() {
   // El código para mostrar opciones y esperar una selección se traslada al loop()
 }
 void loop() {
-  
+  // Verificar si hay datos disponibles para leer en el puerto serial
   if (Serial.available() > 0) {
-    // Espera a que haya una entrada en el puerto serial
-    char opcion = Serial.read(); // Lee la opción enviada desde Python
+    char opcion = Serial.read(); // Lee la opción enviada desde el otro lado
     Serial.flush(); // Limpia el buffer Serial para evitar caracteres antiguos
-
-    if (opcion == '1') {
-      // Opción de escritura
-      Serial.println(F("Escribiendo en la tarjeta..."));
-      if (esperarTarjeta()) {
-        // Si hay una tarjeta presente, procede a la escritura
-        recibirYEscribirTexto();
-      }
-    } else if (opcion == '2') {
-      // Opción de lectura
-      Serial.println(F("Leyendo la tarjeta..."));
-      if (esperarTarjeta()) {
-        // Si hay una tarjeta presente, procede a la lectura
-        leerContenidoDeLaTarjeta();
-      }
-    } else {
-      // Opción no válida
-      Serial.println(F("Opción no válida."));
+    
+    switch(opcion) {
+      case '1':
+        // Opción de escritura
+        Serial.println(F("Escribiendo en la tarjeta..."));
+        if (esperarTarjeta()) {
+          recibirYEscribirTexto();
+        }
+        break;
+      case '2':
+        // Opción de lectura
+        Serial.println(F("Leyendo la tarjeta..."));
+        if (esperarTarjeta()) {
+          leerContenidoDeLaTarjeta();
+        }
+        break;
+      default:
+        Serial.println(F("Opción no válida."));
+        break;
     }
   }
+
+  // Un pequeño delay para no saturar el loop
+  delay(10);
 }
+
 bool esperarTarjeta() {
   unsigned long startTime = millis();
   while (!mfrc522.PICC_IsNewCardPresent() || !mfrc522.PICC_ReadCardSerial()) {
